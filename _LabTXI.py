@@ -245,45 +245,77 @@ class CarForm(tk.Toplevel):
                 messagebox.showerror("Ошибка", "Бренд и модель обязательны")
                 return
 
-            base_price = float(self.e_price.get() or 0)
-            curb_weight = float(self.e_weight.get() or 0)
+            # --- вспомогательные функции проверки ---
+            def pos_float(entry: tk.Entry, field_name: str) -> float:
+                text = entry.get().strip()
+                value = float(text)
+                if value <= 0:
+                    raise ValueError(f"{field_name} должно быть положительным числом")
+                return value
+
+            def pos_int(entry: tk.Entry, field_name: str) -> int:
+                text = entry.get().strip()
+                value = int(float(text))
+                if value <= 0:
+                    raise ValueError(f"{field_name} должно быть положительным целым числом")
+                return value
+
+            # --- общие поля (только положительные!) ---
+            base_price = pos_float(self.e_price, "Цена")
+            curb_weight = pos_float(self.e_weight, "Масса")
+
             t = self.var_type.get()
 
             if t == "ICE":
+                engine_capacity = pos_float(self.s1, "Объём двигателя")
+                fuel_type = self.s2.get().strip()
+                emission_class = self.s3.get().strip()
+
                 obj = ICECar(
                     brand=brand,
                     model=model,
                     base_price=base_price,
                     curb_weight=curb_weight,
-                    engine_capacity=float(self.s1.get() or 0),
-                    fuel_type=self.s2.get().strip(),
-                    emission_class=self.s3.get().strip(),
+                    engine_capacity=engine_capacity,
+                    fuel_type=fuel_type,
+                    emission_class=emission_class,
                 )
+
             elif t == "EV":
+                max_range_km = pos_int(self.s1, "Запас хода (км)")
+                fast = self.s2.get().strip()
+
                 obj = ElectricCar(
                     brand=brand,
                     model=model,
                     base_price=base_price,
                     curb_weight=curb_weight,
-                    max_range_km=int(float(self.s1.get() or 0)),
-                    fast_charge_support=self.s2.get().strip() in {"1", "true", "True", "yes", "да", "Да"},
+                    max_range_km=max_range_km,
+                    fast_charge_support=fast in {"1", "true", "True", "yes", "да", "Да"},
                 )
-            else:
+
+            else:  # Hybrid
+                engine_capacity = pos_float(self.s1, "Объём двигателя")
+                battery_capacity = pos_float(self.s2, "Ёмкость батареи")
+
                 obj = HybridCar(
                     brand=brand,
                     model=model,
                     base_price=base_price,
                     curb_weight=curb_weight,
-                    engine_capacity=float(self.s1.get() or 0),
-                    battery_capacity=float(self.s2.get() or 0),
+                    engine_capacity=engine_capacity,
+                    battery_capacity=battery_capacity,
                 )
 
             self.result = obj
             self.destroy()
+
         except ValueError as e:
-            messagebox.showerror("Ошибка", f"Некорректные числовые значения: {e}")
+            # сюда попадут и наши сообщения про отрицательные числа
+            messagebox.showerror("Ошибка", str(e))
         except Exception as e:
             messagebox.showerror("Ошибка", f"Проверьте поля: {e}")
+
 
 
 # ---------- Main form (главное окно) ----------
